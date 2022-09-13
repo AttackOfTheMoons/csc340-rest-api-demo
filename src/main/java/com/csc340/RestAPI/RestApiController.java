@@ -1,8 +1,15 @@
 package com.csc340.RestAPI;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -18,62 +25,25 @@ import org.springframework.web.client.RestTemplate;
 @RestController
 public class RestApiController {
 
-    @GetMapping("/hello")
-    public String hello(@RequestParam(value = "name", defaultValue = "World") String name) {
-        return String.format("Hello, %s!", name);
-    }
+	/**
+	 * Retrieve one Runescape user's total level and experience from the runescape API and output to console
+	 *
+	 * @param name The runescape player name to lookup
+	 * @return true
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	@GetMapping("/runescape")
+	public boolean getRunescape(@RequestParam(value="name") String name) throws IOException, InterruptedException
+	{
+		String url = String.format("https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=%s", name);
+		HttpClient client = HttpClient.newHttpClient();
+		HttpRequest request = HttpRequest.newBuilder(URI.create(url)).GET().build();
+		String response = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
+		Map<String, RunescapeSkill> skillMap = Runescape.parse(response);
+		System.out.printf("%s\nTotal Level: %d\nTotal Experience: %d%n", name, skillMap.get("overall").level, skillMap.get("overall").experience);
+		return true;
+	}
 
-    /**
-     * Get a random quote from quotable and make it available at this endpoint.
-     *
-     * @return
-     */
-    @GetMapping("/quote")
-    public Object getQuote() {
-        String url = "https://api.quotable.io/random";
-        RestTemplate restTemplate = new RestTemplate();
-        Object jSonQuote = restTemplate.getForObject(url, Object.class);
-
-        //Print the whole response to console.
-        String quote = restTemplate.getForObject(url, String.class);
-        //Parse out the most important info from the response.
-        JSONObject jo = new JSONObject(quote);
-        System.out.println(jo.toString());
-        String quoteAuthor = jo.getString("author");
-        String quoteContent = jo.getString("content");
-        System.out.println(quoteAuthor);
-        System.out.println(quoteContent);
-
-        return jSonQuote;
-    }
-
-    /**
-     * Get a list of universities from hipolabs and parse the most important
-     * info to console.
-     *
-     * @return
-     */
-    @GetMapping("/universities")
-    public List<Object> getUniversities() {
-        String url = "http://universities.hipolabs.com/search?name=sports";
-        RestTemplate restTemplate = new RestTemplate();
-        Object[] universities = restTemplate.getForObject(url, Object[].class);
-
-        //Print the whole response to console
-        JSONArray ja = new JSONArray(universities);
-        System.out.println(ja.toString());
-
-        //Parse out relevant info from each entry in the response
-        Iterator<Object> iter = ja.iterator();
-        while (iter.hasNext()) {
-            JSONObject jo = (JSONObject) iter.next();
-            String name = jo.getString("name");
-            String country = jo.getString("country");
-            System.out.println(name + " : " + country);
-
-        }
-
-        return Arrays.asList(universities);
-    }
 
 }
